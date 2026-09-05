@@ -1,0 +1,40 @@
+name: LYE release
+
+# A release is a Git tag `vX.Y.Z` on main. The tag must equal the version
+# of every package (checked by ci.yml). This workflow publishes the GitHub
+# release with the matching CHANGELOG section so consumers can review what
+# changed before bumping their `ref`.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Versions match the tag
+        run: dart tool/check_versions.dart "${GITHUB_REF_NAME}"
+      - name: Extract CHANGELOG section
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { on=1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release_notes.md
+          if [ ! -s release_notes.md ]; then
+            echo "No CHANGELOG section for $version" && exit 1
+          fi
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: LYE ${{ github.ref_name }}
+          body_path: release_notes.md

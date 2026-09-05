@@ -1,0 +1,40 @@
+Log Your Event (LYE) — Licenza proprietaria / Proprietary licence
+
+Copyright (c) 2026 Cristian Perciun.
+
+Titolarità. Il codice sorgente, la documentazione e gli schemi contenuti in questo
+repository sono opera dell'autore indicato sopra e restano di sua esclusiva
+titolarità finché non interviene l'atto di cessione dei diritti patrimoniali
+d'autore alla società a responsabilità limitata "casa madre" descritta nel
+documento "Concept aziendale e costituzione della SRL in Repubblica Moldova"
+(§5.6 e §6.4). Dal momento della cessione la titolare è la SRL, che concede il
+motore in licenza interna alle proprie linee di prodotto (§3.4 dello stesso
+documento).
+
+Uso consentito. L'uso, la copia e la modifica sono consentiti esclusivamente
+all'interno dei prodotti della titolare (Compliance OS, PrivacyBox MD e i
+verticali successivi) e ai collaboratori autorizzati per iscritto.
+
+Divieti. È vietata la ridistribuzione, la pubblicazione, la concessione in
+sublicenza o la vendita a terzi, in forma sorgente o binaria, senza il consenso
+scritto della titolare.
+
+Componenti di terze parti. Le librerie open source utilizzate e le rispettive
+licenze sono elencate in NOTICE.md e devono essere conservate nelle distribuzioni.
+
+Nessuna garanzia. Il software è fornito "così com'è", senza garanzie di alcun tipo.
+
+---
+
+Ownership. The source code, documentation and schemas in this repository are the
+work of the author named above and remain their exclusive property until the
+assignment of economic copyright to the parent limited-liability company
+described in the "Concept aziendale" document. From that moment the company is
+the owner and licenses the engine internally to its product lines.
+
+Permitted use: only within the owner's products and by collaborators authorised
+in writing. Redistribution, publication, sublicensing or sale to third parties,
+in source or binary form, is forbidden without written consent.
+
+Third-party components and their licences are listed in NOTICE.md.
+The software is provided "as is", without warranty of any kind.

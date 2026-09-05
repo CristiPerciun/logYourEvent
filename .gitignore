@@ -1,0 +1,24 @@
+# Dart / Flutter
+**/.dart_tool/
+**/build/
+**/.packages
+**/pubspec.lock
+!packages/lye_flutter/pubspec.lock
+**/doc/api/
+*.realm
+*.realm.lock
+*.realm.note
+**/.realm/
+**/binary/
+
+# Output della libreria in sviluppo locale
+**/lye_out/
+**/*.lye.csv
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+*.log

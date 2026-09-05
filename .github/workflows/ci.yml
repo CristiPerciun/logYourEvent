@@ -1,0 +1,113 @@
+name: LYE CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  dart_packages:
+    name: ${{ matrix.package }} (analyze, test)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [lye_core, lye_io, lye_server]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Dependencies
+        working-directory: packages/${{ matrix.package }}
+        run: dart pub get
+      - name: Strict analysis
+        working-directory: packages/${{ matrix.package }}
+        run: dart analyze --fatal-infos
+      - name: Tests
+        working-directory: packages/${{ matrix.package }}
+        run: dart test
+
+  realm_store:
+    name: lye_realm (native binaries, codegen, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Dependencies
+        working-directory: packages/lye_realm
+        run: dart pub get
+      - name: Realm native binaries
+        working-directory: packages/lye_realm
+        run: dart run realm_dart install
+      - name: Generated models are up to date
+        working-directory: packages/lye_realm
+        run: |
+          dart run realm_dart generate
+          git diff --exit-code -- lib/src/models.realm.dart
+      - name: Strict analysis
+        working-directory: packages/lye_realm
+        run: dart analyze --fatal-infos
+      - name: Tests
+        working-directory: packages/lye_realm
+        run: dart test
+
+  flutter_adapters:
+    name: lye_flutter (analyze, widget tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Dependencies
+        working-directory: packages/lye_flutter
+        run: flutter pub get
+      - name: Strict analysis
+        working-directory: packages/lye_flutter
+        run: dart analyze --fatal-infos
+      - name: Widget tests
+        working-directory: packages/lye_flutter
+        run: flutter test
+
+  versions:
+    name: Versions consistent with the tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Check
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            dart tool/check_versions.dart "${GITHUB_REF_NAME}"
+          else
+            dart tool/check_versions.dart
+          fi
+
+  demo_verify:
+    name: End-to-end demo export verifies
+    runs-on: ubuntu-latest
+    needs: [dart_packages]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Demo, verify, tamper, verify again
+        working-directory: packages/lye_io
+        run: |
+          dart pub get
+          dart run bin/lye.dart demo /tmp/lye-demo
+          dart run bin/lye.dart verify /tmp/lye-demo --key demo-secret --key-id demo
+          dart run bin/lye.dart demo /tmp/lye-tampered --tamper
+          if dart run bin/lye.dart verify /tmp/lye-tampered; then
+            echo "tampering was NOT detected" && exit 1
+          fi
+          echo "tampering detected as expected"
