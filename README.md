@@ -9,6 +9,7 @@ Fonti di verità della progettazione: `Compliance_OS_Documento_Tecnico_Architett
 | Pacchetto | Dipendenze | Dove gira | Cosa fa |
 |---|---|---|---|
 | [`lye_core`](packages/lye_core) | `crypto`, `meta` | ovunque (anche web) | Evento `lye.v1`, hash-chain per stream, UUIDv7, redazione, codec CSV, manifest firmati, verificatore, registratore con span, batch e scheduler di spedizione, store in memoria |
+| [`lye_archive`](packages/lye_archive) | `lye_core`, `archive`, `crypto` | ovunque (anche web) | Archivi ZIP di una catena di conto: costruzione con rotazione a dimensione, manifest firmato `lye.archive.v1`, verifica di un pacchetto da solo |
 | [`lye_io`](packages/lye_io) | `lye_core`, `path`, `dart:io` | server, desktop, mobile | File CSV con rotazione e manifest concatenati, verifica di una cartella, timeline di un'operazione, CLI `lye` |
 | [`lye_realm`](packages/lye_realm) | `lye_core`, `realm_dart` | server, desktop, mobile | Store durevole cifrato su Realm 20 |
 | [`lye_server`](packages/lye_server) | `lye_core`, `lye_io` | server | Ingest dei batch client con verifica della catena, tracer per endpoint, transazioni con scope, statement SQL, audit e job; export, ancoraggio delle teste, purga per retention |
@@ -52,7 +53,7 @@ pwsh tool/bootstrap.ps1        # pub get, binari Realm, generazione modelli
 bash tool/test_all.sh          # analisi stretta (--fatal-infos) e test di ogni pacchetto, come in CI
 ```
 
-Stato della v0.1.0: 5 pacchetti, analisi statica stretta pulita, 112 test verdi (70 core, 15 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
+Stato della v0.2.0: 6 pacchetti, analisi statica stretta pulita, 143 test verdi (85 core, 12 archive, 19 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
 
 ## Struttura del repository
 
@@ -97,6 +98,12 @@ log-your-event/
     │       ├── shipping/         lye_batch.dart (lye.batch.v1) · shipping_scheduler.dart (soglia, intervallo, backoff, rifiuto)
     │       └── version.dart      lyeVersion
     │   └── test/                 70 test (canonical, ids_and_chain, privacy, csv_codec, csv_and_verify, memory_store, recorder, manifest, shipping)
+    ├── lye_archive/              archivi ZIP per conto (Dart puro, gira anche sul web)
+    │   ├── lib/src/
+    │   │   ├── archive_row.dart      riga con la sua posizione nella catena; descrizione del taglio
+    │   │   ├── archive_builder.dart  rotazione sui byte compressi, ZIP riproducibile, manifest
+    │   │   └── archive_verifier.dart apertura e verifica di un pacchetto, da solo
+    │   └── test/                 12 test
     ├── lye_io/                   dart:io — server, desktop, mobile
     │   ├── bin/lye.dart          eseguibile `lye`
     │   ├── lib/src/

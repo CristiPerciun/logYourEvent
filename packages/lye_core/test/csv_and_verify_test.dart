@@ -24,8 +24,11 @@ void main() {
       final lines = text.split('\r\n')..removeLast();
       expect(lines.length, 7);
       expect(lines.first, LyeCsvSchema.columns.join(','));
-      expect(LyeCsvSchema.columns.length, 37);
-      expect(LyeCsvSchema.hashedColumnCount, 34);
+      expect(LyeCsvSchema.version, 'lye.v2');
+      expect(LyeCsvSchema.columns.length, 40);
+      expect(LyeCsvSchema.hashedColumnCount, 37);
+      expect(LyeCsvSchema.columnsV1.length, 37);
+      expect(LyeCsvSchema.hashedColumnCountV1, 34);
     });
 
     test('round-trips every column and keeps hashes valid', () {

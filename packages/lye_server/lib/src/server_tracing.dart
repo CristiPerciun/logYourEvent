@@ -153,7 +153,7 @@ class ServerTracing {
 
   /// Links the trace to the compliance-os audit chain: `audit.append` with
   /// `audit_ref = org_id:seq:row_hash`.
-  Future<LyeEvent> auditAppended({
+  Future<LyeEvent?> auditAppended({
     required String orgId,
     required String action,
     required List<int> rowHash,
@@ -173,7 +173,7 @@ class ServerTracing {
   }
 
   /// A document was displayed or downloaded (§5.6: reads fire no trigger).
-  Future<LyeEvent> documentAccessed({
+  Future<LyeEvent?> documentAccessed({
     required String documentId,
     required String kind,
     bool download = false,
@@ -189,7 +189,7 @@ class ServerTracing {
   }
 
   /// A job entered the queue (inside the domain transaction: outbox).
-  Future<LyeEvent> jobEnqueued({
+  Future<LyeEvent?> jobEnqueued({
     required String queue,
     required String jobId,
     String? singletonKey,
@@ -225,7 +225,7 @@ class ServerTracing {
 
   /// A break-glass elevation (§6.3): always `security`, always with the
   /// partner concerned so the notification has an addressee.
-  Future<LyeEvent> breakGlass({
+  Future<LyeEvent?> breakGlass({
     required String partnerId,
     required DateTime expiresAt,
     required bool granted,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:lye_archive/lye_archive.dart';
 import 'package:lye_core/lye_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -13,7 +14,8 @@ import 'timeline.dart';
 /// 0 success, 1 integrity problems found, 2 usage error.
 ///
 /// ```text
-/// lye verify   <dir> [--key <secret> --key-id <id>]
+/// lye verify         <dir> [--key <secret> --key-id <id>]
+/// lye verify-archive <file.zip> [--key <secret> --key-id <id>]
 /// lye inspect  <file.csv>
 /// lye timeline <dir> (--trace <id> | --call <digest> | --actor <ref>)
 /// lye demo     <dir> [--tamper]
@@ -33,6 +35,8 @@ Future<int> runLye(
   switch (args.first) {
     case 'verify':
       return _verify(options, stdoutSink, stderrSink);
+    case 'verify-archive':
+      return _verifyArchive(options, stdoutSink, stderrSink);
     case 'inspect':
       return _inspect(options, stdoutSink, stderrSink);
     case 'timeline':
@@ -57,8 +61,11 @@ lye — Log Your Event $lyeVersion
 
 Commands:
   verify   <dir> [--key <secret> --key-id <id>]   recompute every hash under <dir>
+  verify-archive <file.zip> [--key <secret> --key-id <id>]
+                                                   check one subject archive on its own
   inspect  <file.csv>                              summarise one CSV file
   timeline <dir> --trace <id>                      events of one trace, across client and server
+  timeline --archive <file.zip> --trace <id>       the same, from an archive
   timeline <dir> --call <digest>                   events around one RPC call digest
   timeline <dir> --actor <ref> [--from <ts> --to <ts>]
   demo     <dir> [--tamper]                        write a sample client+server export (and break it)
@@ -131,18 +138,60 @@ Future<int> _inspect(_Options options, StringSink out, StringSink err) async {
   return report.ok ? 0 : 1;
 }
 
+/// Checks one subject archive: manifest signature, member digests, the hash
+/// of every row, the subject chain and, when the caller knows them, the link
+/// to the archive before it.
+Future<int> _verifyArchive(
+  _Options options,
+  StringSink out,
+  StringSink err,
+) async {
+  final path = options.positional.firstOrNull;
+  if (path == null) {
+    err.writeln('verify-archive needs a .zip file\n\n$usage');
+    return 2;
+  }
+  final file = File(path);
+  if (!await file.exists()) {
+    err.writeln('No such file: $path');
+    return 2;
+  }
+  final expectedFrom = options['from-seq'];
+  final report = ArchiveVerifier(signer: _signerFrom(options)).verify(
+    await file.readAsBytes(),
+    fileName: p.basename(path),
+    expectedPrevArchiveHash: options['prev-archive-hash'],
+    expectedFromSeq: expectedFrom == null ? null : int.parse(expectedFrom),
+    expectedZipSha256: options['sha256'],
+  );
+  out.write(report.render());
+  return report.ok ? 0 : 1;
+}
+
 Future<int> _timeline(_Options options, StringSink out, StringSink err) async {
+  final archivePath = options['archive'];
   final dir = options.positional.firstOrNull;
   final trace = options['trace'];
   final call = options['call'];
   final actor = options['actor'];
-  if (dir == null || (trace == null && call == null && actor == null)) {
+  if ((dir == null && archivePath == null) ||
+      (trace == null && call == null && actor == null)) {
     err.writeln(
       'timeline needs a directory and one of --trace, --call, --actor\n\n$usage',
     );
     return 2;
   }
-  final timeline = await Timeline.load(dir);
+  final Timeline timeline;
+  if (archivePath != null) {
+    final file = File(archivePath);
+    if (!await file.exists()) {
+      err.writeln('No such file: $archivePath');
+      return 2;
+    }
+    timeline = Timeline(ArchiveVerifier.open(await file.readAsBytes()).events);
+  } else {
+    timeline = await Timeline.load(dir!);
+  }
   List<LyeEvent> events;
   if (trace != null) {
     events = timeline.operation(trace);
@@ -192,6 +241,9 @@ Future<int> _demo(_Options options, StringSink out, StringSink err) async {
     store: store,
     clock: clock,
     random: random,
+    // The demonstration shows the whole trail, from the gesture to the
+    // statement: that is the forensic level (ADR-010).
+    level: LyeLevel.forensic,
   );
   final server = LyeRecorder(
     config: LyeConfig(
@@ -204,6 +256,9 @@ Future<int> _demo(_Options options, StringSink out, StringSink err) async {
     store: store,
     clock: clock,
     random: random,
+    // The demonstration shows the whole trail, from the gesture to the
+    // statement: that is the forensic level (ADR-010).
+    level: LyeLevel.forensic,
   );
   const partner = '11111111-1111-1111-1111-111111111111';
   const tenant = '22222222-2222-2222-2222-222222222222';

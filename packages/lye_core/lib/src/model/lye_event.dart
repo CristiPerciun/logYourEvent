@@ -48,14 +48,22 @@ class LyeEvent {
     required this.errorClass,
     required this.errorDigest,
     required this.retention,
+    required this.subjectType,
+    required this.subjectRef,
+    required this.level,
     required this.prevHash,
     required this.rowHash,
     this.receivedAt,
     this.schema = LyeCsvSchema.version,
   });
 
-  /// Schema tag, `lye.v1`.
+  /// Schema tag, `lye.v2` for events sealed by this version.
   final String schema;
+
+  /// Whether this event was written under the `lye.v1` layout, which has
+  /// neither subject nor level. Its canonical form must stay the one it was
+  /// signed with, otherwise an archive written before 0.2.0 stops verifying.
+  bool get isLegacyV1 => schema == 'lye.v1';
 
   /// UUIDv7 of the event.
   final String eventId;
@@ -142,6 +150,17 @@ class LyeEvent {
 
   final LyeRetention retention;
 
+  /// Who the event belongs to. Resolved on the trusted side, never by the
+  /// producer: a client cannot name its own subject (ADR-008).
+  final LyeSubjectType subjectType;
+
+  /// Pseudonymous identifier of the subject: the user, the organisation or
+  /// the node, according to [subjectType].
+  final String subjectRef;
+
+  /// Verbosity level at which the event was emitted (ADR-010).
+  final LyeLevel level;
+
   /// Hex of the previous row hash (genesis: 64 zeros).
   final String prevHash;
 
@@ -187,6 +206,7 @@ class LyeEvent {
     errorClass,
     errorDigest,
     retention.name,
+    if (!isLegacyV1) ...<String>[subjectType.name, subjectRef, level.name],
   ];
 
   /// Canonical text entering the hash.
@@ -249,22 +269,34 @@ class LyeEvent {
     errorClass: errorClass,
     errorDigest: errorDigest,
     retention: retention,
+    subjectType: subjectType,
+    subjectRef: subjectRef,
+    level: level,
     prevHash: prevHash,
     rowHash: rowHash ?? this.rowHash,
     receivedAt: receivedAt ?? this.receivedAt,
   );
 
-  /// Reads an event back from its CSV columns. Throws [FormatException] on
-  /// a wrong column count or malformed values; the row hash is not checked
-  /// here (see `ChainVerifier`).
+  /// Reads an event back from its CSV columns, in either the `lye.v2`
+  /// layout (40 columns) or the `lye.v1` one (37). Throws [FormatException]
+  /// on a wrong column count or malformed values; the row hash is not
+  /// checked here (see `ChainVerifier`).
   static LyeEvent fromCsvFields(List<String> f) {
-    if (f.length != LyeCsvSchema.columns.length) {
+    final bool legacy;
+    if (f.length == LyeCsvSchema.columns.length) {
+      legacy = false;
+    } else if (f.length == LyeCsvSchema.columnsV1.length) {
+      legacy = true;
+    } else {
       throw FormatException(
-        'Expected ${LyeCsvSchema.columns.length} columns, got ${f.length}',
+        'Expected ${LyeCsvSchema.columns.length} or '
+        '${LyeCsvSchema.columnsV1.length} columns, got ${f.length}',
       );
     }
+    // The three columns of lye.v2 sit between `retention` and `prev_hash`.
+    final tail = legacy ? 34 : 37;
     final durationText = f[18];
-    final receivedText = f[36];
+    final receivedText = f[tail + 2];
     return LyeEvent(
       schema: f[0],
       eventId: f[1],
@@ -300,8 +332,15 @@ class LyeEvent {
       errorClass: f[31],
       errorDigest: f[32],
       retention: enumFromWire(LyeRetention.values, f[33], 'retention'),
-      prevHash: f[34],
-      rowHash: f[35],
+      subjectType: legacy
+          ? LyeSubjectType.platform
+          : enumFromWire(LyeSubjectType.values, f[34], 'subject_type'),
+      subjectRef: legacy ? '' : f[35],
+      level: legacy
+          ? LyeLevel.standard
+          : enumFromWire(LyeLevel.values, f[36], 'level'),
+      prevHash: f[tail],
+      rowHash: f[tail + 1],
       receivedAt: receivedText.isEmpty ? null : parseTimestampUtc(receivedText),
     );
   }
@@ -309,18 +348,22 @@ class LyeEvent {
   /// JSON object keyed by CSV column name (the wire format of batches).
   Map<String, Object?> toJson() {
     final fields = toCsvFields();
+    final names = LyeCsvSchema.columnsOf(schema);
     return <String, Object?>{
-      for (var i = 0; i < fields.length; i++)
-        LyeCsvSchema.columns[i]: fields[i],
+      for (var i = 0; i < fields.length; i++) names[i]: fields[i],
     };
   }
 
-  /// Inverse of [toJson]. Missing columns are treated as empty strings so a
-  /// newer reader can still load older batches.
+  /// Inverse of [toJson]. The layout follows the `schema` key, so a newer
+  /// reader can still load batches written by an older producer; missing
+  /// columns are treated as empty strings.
   static LyeEvent fromJson(Map<String, Object?> json) {
+    final schema = (json['schema'] ?? LyeCsvSchema.version).toString();
+    final names = LyeCsvSchema.knownVersions.contains(schema)
+        ? LyeCsvSchema.columnsOf(schema)
+        : LyeCsvSchema.columns;
     final fields = <String>[
-      for (final column in LyeCsvSchema.columns)
-        (json[column] ?? '').toString(),
+      for (final column in names) (json[column] ?? '').toString(),
     ];
     return fromCsvFields(fields);
   }

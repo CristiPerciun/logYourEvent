@@ -13,6 +13,7 @@ LyeRecorder testRecorder({
   String? epoch,
 }) {
   return LyeRecorder(
+    level: LyeLevel.forensic,
     config: LyeConfig(
       origin: origin,
       platform: LyePlatform.vm,
@@ -35,12 +36,12 @@ Future<List<LyeEvent>> recordMany(
   final events = <LyeEvent>[];
   for (var i = 0; i < count; i++) {
     events.add(
-      await recorder.point(
+      (await recorder.point(
         LyeCategory.interaction,
         LyeActions.uiTap,
         component: 'button-$i',
         attrs: <String, Object?>{'index': i},
-      ),
+      ))!,
     );
     clock?.advance(const Duration(seconds: 1));
   }

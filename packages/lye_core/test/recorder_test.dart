@@ -27,7 +27,7 @@ void main() {
       final recorder = testRecorder();
       final futures = <Future<LyeEvent>>[
         for (var i = 0; i < 300; i++)
-          recorder.point(
+          recorder.mustPoint(
             LyeCategory.state,
             LyeActions.stateUpdate,
             component: 'p$i',
@@ -51,7 +51,7 @@ void main() {
         sessionRef: 'sess-1',
         route: '/ropa',
       );
-      final event = await recorder.point(
+      final event = await recorder.mustPoint(
         LyeCategory.interaction,
         LyeActions.uiIntent,
         component: '=SUM(A1)\nsave',
@@ -87,13 +87,13 @@ void main() {
       final results = await Future.wait(<Future<LyeEvent>>[
         recorder.withContext(
           requestA,
-          () => recorder.point(LyeCategory.rpc, LyeActions.rpcHandle),
+          () => recorder.mustPoint(LyeCategory.rpc, LyeActions.rpcHandle),
         ),
         recorder.withContext(
           requestB,
-          () => recorder.point(LyeCategory.rpc, LyeActions.rpcHandle),
+          () => recorder.mustPoint(LyeCategory.rpc, LyeActions.rpcHandle),
         ),
-        recorder.point(LyeCategory.rpc, LyeActions.rpcHandle),
+        recorder.mustPoint(LyeCategory.rpc, LyeActions.rpcHandle),
       ]);
       expect(results[0].partnerId, 'p-a');
       expect(results[0].scope, LyeScope.partner);
@@ -112,7 +112,7 @@ void main() {
           category: LyeCategory.interaction,
           route: '/ropa',
           body: (LyeSpan span) async {
-            await recorder.point(LyeCategory.rpc, LyeActions.rpcCall);
+            await recorder.mustPoint(LyeCategory.rpc, LyeActions.rpcCall);
             await recorder.span<void>(
               'ropa.entry.validate',
               category: LyeCategory.state,
@@ -207,10 +207,10 @@ void main() {
     test('rejects malformed action codes without breaking the chain', () async {
       final recorder = testRecorder();
       await expectLater(
-        recorder.point(LyeCategory.system, 'Not A Code'),
+        recorder.mustPoint(LyeCategory.system, 'Not A Code'),
         throwsA(isA<LyeDraftException>()),
       );
-      final ok = await recorder.point(LyeCategory.system, 'x.custom.event');
+      final ok = await recorder.mustPoint(LyeCategory.system, 'x.custom.event');
       expect(ok.seq, 1);
       expect(recorder.failedCount, 1);
     });
@@ -228,7 +228,7 @@ void main() {
         store: store,
         epoch: '01924f3a-0000-7000-8000-000000000002',
       );
-      final start = await second.start();
+      final start = await second.mustStart();
       expect(start.action, LyeActions.streamStart);
       expect(start.seq, 1);
       expect(start.attrs, contains('"prev_stream_id":"${first.streamId}"'));
@@ -248,7 +248,7 @@ void main() {
     test('refuses to record after close', () async {
       final recorder = testRecorder();
       await recorder.close();
-      expect(() => recorder.point(LyeCategory.system, 'x.a'), throwsStateError);
+      expect(() => recorder.mustPoint(LyeCategory.system, 'x.a'), throwsStateError);
     });
   });
 }

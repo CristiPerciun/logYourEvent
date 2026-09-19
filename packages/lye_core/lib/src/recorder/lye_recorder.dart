@@ -15,6 +15,7 @@ import 'lye_clock.dart';
 import 'lye_config.dart';
 import 'lye_context.dart';
 import 'lye_span.dart';
+import 'subject_resolver.dart';
 
 /// Raised when a draft cannot be sealed.
 class LyeDraftException implements Exception {
@@ -45,9 +46,13 @@ class LyeRecorder {
     Redactor? redactor,
     Random? random,
     String? epoch,
+    LyeLevel? level = LyeLevel.standard,
+    SubjectResolver? subjects,
   }) : clock = clock ?? const SystemClock(),
        redactor = redactor ?? const Redactor(),
-       _random = random ?? Random.secure() {
+       _random = random ?? Random.secure(),
+       _level = level,
+       subjects = subjects ?? const SubjectResolver() {
     _uuid = UuidV7(random: _random, clock: this.clock);
     _spanIds = SpanIdGenerator(_random);
     this.epoch = epoch ?? _uuid.generate();
@@ -58,6 +63,9 @@ class LyeRecorder {
   final LyeStore store;
   final LyeClock clock;
   final Redactor redactor;
+
+  /// Turns a context into the subject an event belongs to (ADR-008).
+  final SubjectResolver subjects;
   final Random _random;
   late final UuidV7 _uuid;
   late final SpanIdGenerator _spanIds;
@@ -77,7 +85,9 @@ class LyeRecorder {
   StreamHead? _head;
   int _sealed = 0;
   int _failed = 0;
+  int _dropped = 0;
   bool _closed = false;
+  LyeLevel? _level;
 
   /// Zone key under which [withContext] stores its snapshot.
   static const Symbol contextZoneKey = #lye_context;
@@ -90,6 +100,54 @@ class LyeRecorder {
 
   /// Drafts that could not be sealed (store failure, malformed draft).
   int get failedCount => _failed;
+
+  /// Drafts the level in force did not admit. They never reach the store,
+  /// so the sequence stays contiguous: a gap can never be mistaken for a
+  /// loss (ADR-010).
+  int get droppedCount => _dropped;
+
+  /// Verbosity level in force; null means logging is off and only
+  /// security, authentication and `lye.*` housekeeping survive.
+  LyeLevel? get level => _level;
+
+  /// Whether a draft would be recorded right now.
+  bool admits(LyeDraft draft) => config.levels.isRecorded(
+    category: draft.category,
+    action: draft.action,
+    outcome: draft.outcome,
+    inForce: _level,
+    forced: draft.level,
+  );
+
+  /// Changes the level in force and leaves a trace of the change, so that a
+  /// reader of the archive knows why an hour is poorer than another.
+  ///
+  /// [source] says who decided: `user`, `fleet`, `grant` or `default`.
+  Future<LyeEvent?> applyLevel(
+    LyeLevel? level, {
+    String source = 'fleet',
+    String? changedBy,
+    String? reason,
+    DateTime? expiresAt,
+  }) {
+    final previous = _level;
+    _level = level;
+    return record(
+      LyeDraft(
+        category: LyeCategory.system,
+        action: LyeActions.policyApplied,
+        outcome: LyeOutcome.ok,
+        attrs: <String, Object?>{
+          'level': level?.name ?? 'disabled',
+          'previous': previous?.name ?? 'disabled',
+          'source': source,
+          if (changedBy != null) 'changed_by': changedBy,
+          if (reason != null) 'reason': reason,
+          if (expiresAt != null) 'expires_at': expiresAt.toUtc(),
+        },
+      ),
+    );
+  }
 
   /// Last known head of the stream, null before the first record.
   StreamHead? get head => _head;
@@ -117,7 +175,7 @@ class LyeRecorder {
 
   /// Records the first event of the stream, linking it to the previous
   /// epoch of the same node when the store remembers one.
-  Future<LyeEvent> start({
+  Future<LyeEvent?> start({
     Map<String, Object?> attrs = const <String, Object?>{},
   }) async {
     final previous = await store.latestHeadForNode(
@@ -136,24 +194,30 @@ class LyeRecorder {
           if (previous != null) 'prev_stream_id': previous.streamId,
           if (previous != null) 'prev_seq': previous.seq,
           if (previous != null) 'prev_head': previous.headHash,
+          'level': _level?.name ?? 'disabled',
           ...attrs,
         },
       ),
     );
   }
 
-  /// Seals and stores [draft]. Completes with the sealed event, or with a
+  /// Seals and stores [draft]. Completes with the sealed event, with null
+  /// when the level in force does not admit it, or with a
   /// [LyeDraftException] / store error. Never throws synchronously once the
   /// recorder is open.
-  Future<LyeEvent> record(LyeDraft draft) {
+  Future<LyeEvent?> record(LyeDraft draft) {
     if (_closed) {
       throw StateError('LyeRecorder for $streamId is closed');
+    }
+    if (!admits(draft)) {
+      _dropped++;
+      return Future<LyeEvent?>.value();
     }
     // Capture what depends on the caller's zone before queueing.
     final snapshot = effectiveContext;
     final span = LyeSpan.current;
     final occurredAt = draft.occurredAt?.toUtc() ?? clock.now();
-    final completer = Completer<LyeEvent>();
+    final completer = Completer<LyeEvent?>();
     _queue = _queue.then((_) async {
       try {
         final event = await _seal(draft, snapshot, span, occurredAt);
@@ -167,7 +231,7 @@ class LyeRecorder {
   }
 
   /// Convenience for a point event.
-  Future<LyeEvent> point(
+  Future<LyeEvent?> point(
     LyeCategory category,
     String action, {
     LyeOutcome outcome = LyeOutcome.none,
@@ -177,6 +241,9 @@ class LyeRecorder {
     String? targetType,
     String? targetId,
     String? auditRef,
+    LyeLevel? level,
+    LyeSubjectType? subjectType,
+    String? subjectRef,
     Map<String, Object?> attrs = const <String, Object?>{},
   }) {
     return record(
@@ -190,6 +257,9 @@ class LyeRecorder {
         targetType: targetType,
         targetId: targetId,
         auditRef: auditRef,
+        level: level,
+        subjectType: subjectType,
+        subjectRef: subjectRef,
         attrs: attrs,
       ),
     );
@@ -288,7 +358,7 @@ class LyeRecorder {
     await _events.close();
   }
 
-  Future<LyeEvent> _seal(
+  Future<LyeEvent?> _seal(
     LyeDraft draft,
     LyeContextSnapshot ctx,
     LyeSpan? span,
@@ -299,6 +369,12 @@ class LyeRecorder {
     }
     final head = _head ??= await store.head(streamId);
     final redaction = redactor.redact(draft.attrs);
+    final subject = subjects.resolve(
+      ctx,
+      platformRef: config.platformSubjectRef,
+      overrideType: draft.subjectType,
+      overrideRef: draft.subjectRef,
+    );
     final maxLength = config.maxFieldLength;
     String clean(String? value) =>
         value == null ? '' : LyeText.sanitize(value, maxLength: maxLength);
@@ -337,6 +413,15 @@ class LyeRecorder {
       errorClass: clean(draft.errorClass),
       errorDigest: clean(draft.errorDigest),
       retention: draft.retention ?? config.retention.classify(draft.category),
+      subjectType: subject.type,
+      subjectRef: subject.ref,
+      level:
+          draft.level ??
+          config.levels.levelFor(
+            category: draft.category,
+            action: draft.action,
+            outcome: draft.outcome,
+          ),
       prevHash: head.headHash,
       rowHash: '',
     );

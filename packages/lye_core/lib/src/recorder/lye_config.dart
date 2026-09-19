@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../model/enums.dart';
+import '../model/level_policy.dart';
 import '../privacy/text_sanitizer.dart';
 
 /// Maps categories to retention classes (§6.6 of the architecture
@@ -42,8 +43,10 @@ class LyeConfig {
     required this.appVersion,
     required this.nodeId,
     this.retention = RetentionPolicy.standard,
+    this.levels = LyeLevelPolicy.standard,
     this.maxFieldLength = LyeText.defaultMaxLength,
-  }) {
+    String? platformSubjectRef,
+  }) : platformSubjectRef = platformSubjectRef ?? nodeId {
     if (appId.isEmpty || appVersion.isEmpty || nodeId.isEmpty) {
       throw ArgumentError('appId, appVersion and nodeId are required');
     }
@@ -65,6 +68,15 @@ class LyeConfig {
   /// Random, stable across restarts, never derived from personal data.
   final String nodeId;
   final RetentionPolicy retention;
+
+  /// Which action is emitted at which verbosity level (ADR-010).
+  final LyeLevelPolicy levels;
+
+  /// Subject reference used when an event belongs to no person and to no
+  /// organisation. Defaults to [nodeId]; a product whose store types the
+  /// column as a UUID passes the identifier of its platform organisation.
+  final String platformSubjectRef;
+
   final int maxFieldLength;
 
   /// Value of the `app` column.

@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [lye_core, lye_io, lye_server]
+        package: [lye_core, lye_archive, lye_io, lye_server]
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1

@@ -1,0 +1,19 @@
+name: lye_archive
+description: Log Your Event (LYE) archive layer - builds and verifies the ZIP packages of one subject chain, with a signed `lye.archive.v1` manifest. Pure Dart, runs on the web too.
+version: 0.2.0
+publish_to: none
+repository: https://github.com/CristiPerciun/logYourEvent
+
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+
+dependencies:
+  archive: ^4.0.0
+  crypto: ^3.0.3
+  lye_core:
+    path: ../lye_core
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.31.0

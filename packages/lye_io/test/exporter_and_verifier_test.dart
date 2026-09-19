@@ -97,7 +97,7 @@ void main() {
       );
       final target = files.first;
       final text = await target.readAsString();
-      final forged = text.replaceFirst('button-1', 'button-X');
+      final forged = text.replaceFirst('button-0', 'button-X');
       expect(forged, isNot(text));
       await target.writeAsString(forged, flush: true);
 

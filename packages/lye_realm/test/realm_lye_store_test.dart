@@ -14,6 +14,7 @@ int _seed = 500;
 
 LyeRecorder recorderOn(LyeStore store, {String? epoch, FixedClock? clock}) {
   return LyeRecorder(
+    level: LyeLevel.forensic,
     config: LyeConfig(
       origin: LyeOrigin.server,
       platform: LyePlatform.windows,
@@ -31,11 +32,11 @@ LyeRecorder recorderOn(LyeStore store, {String? epoch, FixedClock? clock}) {
 Future<List<LyeEvent>> recordMany(LyeRecorder recorder, int count) async {
   return <LyeEvent>[
     for (var i = 0; i < count; i++)
-      await recorder.point(
+      (await recorder.point(
         LyeCategory.db,
         LyeActions.dbStatement,
         component: 't$i',
-      ),
+      ))!,
   ];
 }
 
@@ -136,7 +137,7 @@ void main() {
       second,
       epoch: '01924f3a-0000-7000-8000-000000000002',
     );
-    final start = await r2.start();
+    final start = (await r2.start())!;
     expect(start.attrs, contains('"prev_stream_id":"${r1.streamId}"'));
     expect(start.attrs, contains('"prev_seq":5'));
     expect(start.attrs, contains('"prev_head":"${r1.head!.headHash}"'));

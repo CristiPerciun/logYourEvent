@@ -31,6 +31,29 @@ abstract final class LyeActions {
   /// Files older than their retention class were removed.
   static const String retentionPurged = 'lye.retention.purged';
 
+  /// An archive of a subject chain was built and sealed (ADR-009).
+  static const String archiveBuilt = 'lye.archive.built';
+
+  /// The bytes of an archive were handed to someone.
+  static const String archiveDownloaded = 'lye.archive.downloaded';
+
+  /// The digests of an archive were recomputed and compared.
+  static const String archiveVerified = 'lye.archive.verified';
+
+  /// An archive whose digests do not match was flagged.
+  static const String archiveReported = 'lye.archive.reported';
+
+  /// An expired archive was removed.
+  static const String archivePurged = 'lye.archive.purged';
+
+  /// The verbosity level in force changed, or was applied at start-up.
+  /// Without this event a poor hour is indistinguishable from a quiet one
+  /// (ADR-010).
+  static const String policyApplied = 'lye.policy.applied';
+
+  /// The subject passed its daily volume cap; the level steps down.
+  static const String quotaExceeded = 'lye.quota.exceeded';
+
   // Application lifecycle ---------------------------------------------------
 
   static const String appStart = 'app.start';
@@ -121,6 +144,15 @@ abstract final class LyeActions {
   static const String documentView = 'document.view';
   static const String documentDownload = 'document.download';
   static const String exportCsv = 'export.csv';
+
+  // Functions (forensic level only) -----------------------------------------
+
+  /// A service function was entered: qualified name, parameter names and
+  /// types, digests of the arguments. Never the values (ADR-007).
+  static const String fnEnter = 'fn.enter';
+
+  /// A service function returned or threw, with its duration.
+  static const String fnExit = 'fn.exit';
 
   // Errors ------------------------------------------------------------------
 

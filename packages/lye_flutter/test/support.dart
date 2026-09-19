@@ -6,6 +6,7 @@ int _nextSeed = 900;
 
 LyeRecorder testRecorder() {
   return LyeRecorder(
+    level: LyeLevel.forensic,
     config: LyeConfig(
       origin: LyeOrigin.client,
       platform: LyePlatform.vm,

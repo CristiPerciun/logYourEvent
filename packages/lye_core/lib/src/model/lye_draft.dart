@@ -29,6 +29,9 @@ class LyeDraft {
     this.errorClass,
     this.errorDigest,
     this.retention,
+    this.level,
+    this.subjectType,
+    this.subjectRef,
     this.scope,
     this.partnerId,
     this.tenantId,
@@ -85,6 +88,17 @@ class LyeDraft {
   final String? errorDigest;
   final LyeRetention? retention;
 
+  /// Forces the verbosity level instead of letting the policy decide. Used
+  /// by adapters that know better than the catalogue, such as a tap on a
+  /// control that the product considers part of the standard trail.
+  final LyeLevel? level;
+
+  /// Subject override. Left null the recorder resolves the subject from the
+  /// context; an adapter sets it when the event is *about* someone else —
+  /// an operator creating an account names the new account as subject.
+  final LyeSubjectType? subjectType;
+  final String? subjectRef;
+
   // Context overrides.
   final LyeScope? scope;
   final String? partnerId;
@@ -129,6 +143,9 @@ class LyeDraft {
       errorClass: errorClass ?? this.errorClass,
       errorDigest: errorDigest ?? this.errorDigest,
       retention: retention,
+      level: level,
+      subjectType: subjectType,
+      subjectRef: subjectRef,
       scope: scope,
       partnerId: partnerId,
       tenantId: tenantId,
