@@ -2,7 +2,9 @@
 
 Tutte le modifiche rilevanti sono registrate qui. Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versionamento [SemVer](https://semver.org/lang/it/). Il tag Git `vX.Y.Z` coincide con il campo `version` di **tutti** i pacchetti (`tool/check_versions.dart`).
 
-## [0.2.0] — 2026-09-19
+## [0.2.1] — 2026-09-19
+
+> Il tag `v0.2.0` era già stato pubblicato sul commit di sola documentazione, il cui albero dichiara ancora `0.1.0` nei pubspec. Un tag pubblicato non si sposta: il codice della 0.2 esce quindi come **0.2.1**.
 
 Il jurnal smette di essere il tracciato di un processo e diventa quello di un **conto**. Richiesto da Compliance OS per il profilo tecnico: scegliere un account, vederne il flusso, scaricarne gli archivi (`Compliance_OS_Progettazione_Jurnale_per_Conto5.1.md`).
 

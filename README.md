@@ -34,14 +34,14 @@ dependencies:
   lye_core:
     git:
       url: https://github.com/CristiPerciun/logYourEvent.git
-      ref: v0.1.0
+      ref: v0.2.1
       path: packages/lye_core
   lye_server:            # solo server
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_server}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_server}
   lye_realm:             # server, desktop, mobile
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_realm}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_realm}
   lye_flutter:           # console Flutter
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_flutter}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_flutter}
 ```
 
 Il tag `vX.Y.Z` coincide con la versione di tutti i pacchetti (`dart tool/check_versions.dart v0.1.0`). Chi usa `lye_realm` esegue una volta `dart run realm_dart install` (anche nel Dockerfile). Le dipendenze interne del repository sono `path`, risolte da pub dentro il checkout Git.
@@ -53,7 +53,7 @@ pwsh tool/bootstrap.ps1        # pub get, binari Realm, generazione modelli
 bash tool/test_all.sh          # analisi stretta (--fatal-infos) e test di ogni pacchetto, come in CI
 ```
 
-Stato della v0.2.0: 6 pacchetti, analisi statica stretta pulita, 143 test verdi (85 core, 12 archive, 19 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
+Stato della v0.2.1: 6 pacchetti, analisi statica stretta pulita, 143 test verdi (85 core, 12 archive, 19 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
 
 ## Struttura del repository
 

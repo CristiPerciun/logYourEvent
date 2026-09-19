@@ -1,6 +1,6 @@
 name: lye_flutter
 description: Log Your Event (LYE) Flutter adapters - navigator observer, Riverpod 3 provider observer, pointer tracker with explicit LyeTrackable tags, error and lifecycle hooks, HTTP batch shipper. Riverpod-only, no StatefulWidget.
-version: 0.2.0
+version: 0.2.1
 publish_to: none
 repository: https://github.com/CristiPerciun/log-your-event
 
