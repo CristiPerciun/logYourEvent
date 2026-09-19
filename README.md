@@ -76,6 +76,7 @@ log-your-event/
 │   ├── integrazione_compliance_os.md   codice degli adattatori per console_flutter e cos_server
 │   └── adr/                      001 Realm dietro LyeStore · 002 nessuna dipendenza da Serverpod · 003 CSV lye.v1
 │                                 004 hash-chain per stream · 005 Zone e call_digest · 006 repo separato e tag · 007 minimizzazione
+│                                 008 catena per soggetto e classe · 009 archivi ZIP per soggetto · 010 livelli di verbosità (progettate per 0.2)
 └── packages/
     ├── lye_core/                 Dart puro, nessun I/O (gira anche sul web)
     │   ├── lib/lye_core.dart     export pubblici

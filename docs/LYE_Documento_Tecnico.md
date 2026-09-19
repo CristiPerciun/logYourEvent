@@ -34,6 +34,7 @@
 - [16. Registro delle decisioni](#16-registro-delle-decisioni)
 - [17. Glossario](#17-glossario)
 - [18. Punti aperti](#18-punti-aperti)
+- [19. Progettazione 0.2: jurnale per soggetto e archivi ZIP](#19-progettazione-02-jurnale-per-soggetto-e-archivi-zip)
 
 ## 1. Scopo, fonti di verità e perimetro
 
@@ -569,8 +570,8 @@ Definition of Done per una modifica a LYE: analisi `--fatal-infos` pulita; test 
 | Versione | Contenuto | Allineamento |
 |---|---|---|
 | **0.1.0** (oggi) | Libreria completa, CLI, documentazione | F0 |
-| 0.2 | Cablaggio in `compliance-os` (guida §2–3); `S3BlobStore`; job notturni; riconciliazione `audit.append` ↔ `audit.events`; pagina "Timeline" nel viewer dell'audit della console; filtri di volume per gli statement | F1 Fondazioni e Audit (DTA §13.2) |
-| 0.3 | `DriftLyeStore` come seconda implementazione (ADR-001); store IndexedDB opzionale per il web con cifratura WebCrypto; pattern di redazione per verticale | F1–F2 |
+| **0.2** | Schema `lye.v2` (soggetto e livello); cinque livelli di verbosità con filtro nel recorder; catena per (soggetto, classe); pacchetti `lye_archive` e `lye_sql`; comandi `lye verify-archive` e `lye timeline --archive`; cablaggio in `compliance-os` (guida §2–3); job notturni; riconciliazione `audit.append` ↔ `audit.events` | F1 Fondazioni e Audit (DTA §13.2); jurnale per conto |
+| 0.3 | `S3BlobStore`; `DriftLyeStore` come seconda implementazione (ADR-001); store IndexedDB opzionale per il web con cifratura WebCrypto; pattern di redazione per verticale | F1–F2 |
 | 0.4 | `MsignSigner` per le ancore (marca XAdES-T come per le teste dell'audit); export della testa nel security whitepaper | F2 (DTA §10.6) |
 | 1.0 | API stabile prima del gate di F1; tombstoning per classe di retention dentro un file (se il partner legale lo richiede) | gate F1 |
 
@@ -597,6 +598,9 @@ Definition of Done per una modifica a LYE: analisi `--fatal-infos` pulita; test 
 | [005](adr/005-propagazione-via-zone-e-correlazione-call-digest.md) | Propagazione via `Zone`, correlazione client–server con `call_digest` |
 | [006](adr/006-repository-separato-tag-semver-dipendenze-git.md) | Repository separato, tag SemVer, dipendenze Git |
 | [007](adr/007-minimizzazione-by-design.md) | Minimizzazione by design: redazione, `payload_digest`, classi di retention |
+| [008](adr/008-catena-per-soggetto-e-classe.md) | Catena per (soggetto, classe di retention) accanto alla catena per stream |
+| [009](adr/009-archivi-zip-per-soggetto.md) | Archivi ZIP per soggetto: rotazione a dimensione, manifest `lye.archive.v1`, pacchetto `lye_archive` |
+| [010](adr/010-livelli-di-verbosita.md) | Cinque livelli di verbosità; `forensic` registra le funzioni, non i valori |
 
 ## 17. Glossario
 
@@ -626,3 +630,43 @@ Definition of Done per una modifica a LYE: analisi `--fatal-infos` pulita; test 
 6. Riconciliazione notturna `audit.append` ↔ `audit.events` e alert sugli scostamenti.
 7. Iscrizione di LYE nel RoPA della piattaforma e paragrafo nel security whitepaper (DTA §6.8).
 8. Nome della SRL casa madre da inserire in `LICENSE` al momento della cessione dei diritti (CA §5.6).
+## 19. Progettazione 0.2: jurnale per soggetto e archivi ZIP
+
+> **Stato: progettato, non ancora implementato.** Le sezioni da 1 a 18 descrivono la 0.1.0 che esiste. Questa descrive la 0.2.0 decisa il 19 settembre 2026 e formalizzata in [ADR-008](adr/008-catena-per-soggetto-e-classe.md), [ADR-009](adr/009-archivi-zip-per-soggetto.md) e [ADR-010](adr/010-livelli-di-verbosita.md). La progettazione del sistema che la consuma vive in `compliance-os/docs/Compliance_OS_Progettazione_Jurnale_per_Conto5.1.md`.
+
+### 19.1 Il problema
+
+La catena della 0.1 e' per stream, cioe' per processo. Dentro lo stream di un server si alternano gli eventi di tutti gli account: il sottoinsieme di uno solo e' **sparso**, i `seq` hanno buchi e i `prev_hash` puntano a righe altrui. Serve invece consegnare, per un singolo account, un pacchetto di cui si possa dimostrare che e' completo e senza ripetizioni.
+
+### 19.2 Schema `lye.v2`
+
+Tre colonne in coda al blocco firmato, prima di `prev_hash`: 40 colonne, `hashedColumnCount = 37`.
+
+| Colonna | Valori | Ruolo |
+|---|---|---|
+| `subject_type` | `user` / `org` / `platform` | a chi appartiene l'evento |
+| `subject_ref` | identificativo pseudonimo | l'account, o l'organizzazione per gli eventi di sistema |
+| `level` | `error` / `standard` / `verbose` / `forensic` | il livello minimo a cui l'evento e' emesso |
+
+Un file `lye.v1` resta leggibile dal lettore della sua versione: nessuna colonna e' rinominata o riordinata dentro una versione gia' pubblicata (ADR-003).
+
+### 19.3 La seconda catena
+
+Chiave `(subject_ref, retention)`, contatore contiguo `chain_seq` assegnato sotto blocco della riga di testa, accumulatore `chain_hash_k = sha256(chain_hash_{k-1} || utf8(row_hash_k))`. Tre catene per soggetto, una per classe di retention, cosi' ogni archivio copre un intervallo contiguo di una sola catena e si verifica da solo. `chain_seq` e `chain_hash` non entrano nella forma canonica dell'evento: sono assegnati dallo store, non dal produttore.
+
+### 19.4 Livelli
+
+`LyeLevel { error(10), standard(20), verbose(30), forensic(40) }`, mappati da `LyeLevelPolicy` a partire da categoria, azione ed esito. Il filtro si applica **nel recorder, prima di sigillare**: una bozza scartata non consuma un numero di sequenza, quindi le catene restano contigue e un buco non si confonde mai con una perdita. `forensic` aggiunge `fn.enter`/`fn.exit` con nome qualificato, nomi e tipi dei parametri, digest e durata &mdash; mai i valori (ADR-007). Ogni cambio di livello produce `lye.policy.applied`.
+
+### 19.5 Pacchetti nuovi
+
+| Pacchetto | Contenuto | Dipendenze |
+|---|---|---|
+| `lye_archive` | `ArchiveBuilder` con rotazione a dimensione e ZIP riproducibile, manifest `lye.archive.v1` firmato, `ArchiveVerifier`, `ArchiveReader` | `lye_core`, `archive`, `crypto` &mdash; Dart puro, gira anche sul web |
+| `lye_sql` | costruttori di istruzioni e codec di riga per eventi, catene, teste di stream e archivi, piu' il DDL versionato con la libreria; **nessun driver**, le istruzioni le esegue il consumatore | `lye_core` |
+
+`lye_io` guadagna i comandi `lye verify-archive <zip>` e `lye timeline --archive <zip> --trace <id>`.
+
+### 19.6 Che cosa resta fuori
+
+Come si scelgono le righe, dove si conservano i byte, quando parte il taglio giornaliero, chi puo' scaricare: sono decisioni del consumatore e restano nel consumatore (ADR-002). La libreria riceve righe e soglie, restituisce pacchetti sigillati e verdetti.
