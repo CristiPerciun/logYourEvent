@@ -32,15 +32,15 @@ dart run bin/lye.dart demo   /tmp/lye-tampered --tamper && dart run bin/lye.dart
 dependencies:
   lye_core:
     git:
-      url: https://github.com/CristiPerciun/log-your-event.git
+      url: https://github.com/CristiPerciun/logYourEvent.git
       ref: v0.1.0
       path: packages/lye_core
   lye_server:            # solo server
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_server}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_server}
   lye_realm:             # server, desktop, mobile
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_realm}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_realm}
   lye_flutter:           # console Flutter
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_flutter}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_flutter}
 ```
 
 Il tag `vX.Y.Z` coincide con la versione di tutti i pacchetti (`dart tool/check_versions.dart v0.1.0`). Chi usa `lye_realm` esegue una volta `dart run realm_dart install` (anche nel Dockerfile). Le dipendenze interne del repository sono `path`, risolte da pub dentro il checkout Git.
@@ -145,6 +145,6 @@ Regola di dipendenza: `lye_io`, `lye_realm`, `lye_server` e `lye_flutter` dipend
 ```bash
 git init && git add -A && git commit -m "feat: Log Your Event 0.1.0"
 git tag -a v0.1.0 -m "LYE 0.1.0"
-git remote add origin https://github.com/CristiPerciun/log-your-event.git
+git remote add origin https://github.com/CristiPerciun/logYourEvent.git
 git push -u origin main --tags
 ```

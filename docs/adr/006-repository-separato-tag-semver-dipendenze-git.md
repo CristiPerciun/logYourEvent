@@ -16,7 +16,7 @@ Il committente vuole la libreria "inclusa nel progetto tramite un tag/versione e
    dependencies:
      lye_core:
        git:
-         url: https://github.com/CristiPerciun/log-your-event.git
+         url: https://github.com/CristiPerciun/logYourEvent.git
          ref: v0.1.0
          path: packages/lye_core
    ```

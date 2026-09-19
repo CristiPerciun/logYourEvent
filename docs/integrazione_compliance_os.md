@@ -10,20 +10,20 @@ Questa guida contiene il codice degli adattatori che vivono nel repository `comp
 # apps/console_flutter/pubspec.yaml
 dependencies:
   lye_core:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_core}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_core}
   lye_flutter:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_flutter}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_flutter}
 
 # packages/cos_server/pubspec.yaml
 dependencies:
   lye_core:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_core}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_core}
   lye_io:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_io}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_io}
   lye_server:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_server}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_server}
   lye_realm:
-    git: {url: https://github.com/CristiPerciun/log-your-event.git, ref: v0.1.0, path: packages/lye_realm}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.1.0, path: packages/lye_realm}
 ```
 
 Il repository è un pub workspace: aggiungere le dipendenze nei pubspec dei membri e rilanciare `flutter pub get` alla radice. Fino alla pubblicazione del remoto si può lavorare con `path: ../../../log-your-event/packages/lye_core` (stesso layout, cartelle sorelle) e passare al `git`/`ref` al primo tag.
