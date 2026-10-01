@@ -2,6 +2,18 @@
 
 Tutte le modifiche rilevanti sono registrate qui. Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versionamento [SemVer](https://semver.org/lang/it/). Il tag Git `vX.Y.Z` coincide con il campo `version` di **tutti** i pacchetti (`tool/check_versions.dart`).
 
+## [0.3.0] — 2026-10-01
+
+Un **solo CSV da leggere per conto**, richiesto da Compliance OS: un file che permetta di ricostruire tutti i passaggi di una persona prima di un errore, con la zona del prodotto nella prima colonna, la data nella seconda, l'evento o l'errore nella terza e non più di sei colonne ([ADR-011](docs/adr/011-jurnal-da-leggere.md)).
+
+### Aggiunto
+- `LyeReadableJournal` (`lye_core`, Dart puro): da eventi di qualunque provenienza — tabella calda, archivi delle tre classi, copie dello stesso file — un CSV con le colonne del consumatore, **al massimo sei**. Toglie i doppioni su `event_id` + `row_hash`, unisce in un passaggio il `rpc.call` della console e il `rpc.handle` del server della stessa chiamata (stesso attore, stesso `call_digest`, il più vicino entro due minuti), ordina per tempo. Separatore `;`, UTF-8 con BOM, celle su una riga e mai formule.
+- `LyeJournalStep`: un passaggio, con l'esito, la durata e la classe d'errore del lato che conta (il server, quando ha risposto) e gli attributi dei due lati.
+- `LyeJournalAreas` e `LyeAreaRule`: la zona del prodotto di un passaggio, chiesta in ordine all'endpoint, all'azione e alla pagina.
+
+### Invariato
+- Gli archivi: manifest `lye.archive.v1`, un CSV `lye.v2` per pacchetto. Il file da leggere non è una prova e non entra negli ZIP: uno ZIP è di una classe sola. Una tabella dentro ogni ZIP è stata provata e tolta prima del rilascio, perché sarebbero stati tre file per giorno, nessuno completo.
+
 ## [0.2.1] — 2026-09-19
 
 > Il tag `v0.2.0` era già stato pubblicato sul commit di sola documentazione, il cui albero dichiara ancora `0.1.0` nei pubspec. Un tag pubblicato non si sposta: il codice della 0.2 esce quindi come **0.2.1**.

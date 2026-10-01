@@ -34,14 +34,14 @@ dependencies:
   lye_core:
     git:
       url: https://github.com/CristiPerciun/logYourEvent.git
-      ref: v0.2.1
+      ref: v0.3.0
       path: packages/lye_core
   lye_server:            # solo server
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_server}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.3.0, path: packages/lye_server}
   lye_realm:             # server, desktop, mobile
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_realm}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.3.0, path: packages/lye_realm}
   lye_flutter:           # console Flutter
-    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.2.1, path: packages/lye_flutter}
+    git: {url: https://github.com/CristiPerciun/logYourEvent.git, ref: v0.3.0, path: packages/lye_flutter}
 ```
 
 Il tag `vX.Y.Z` coincide con la versione di tutti i pacchetti (`dart tool/check_versions.dart v0.1.0`). Chi usa `lye_realm` esegue una volta `dart run realm_dart install` (anche nel Dockerfile). Le dipendenze interne del repository sono `path`, risolte da pub dentro il checkout Git.
@@ -53,7 +53,7 @@ pwsh tool/bootstrap.ps1        # pub get, binari Realm, generazione modelli
 bash tool/test_all.sh          # analisi stretta (--fatal-infos) e test di ogni pacchetto, come in CI
 ```
 
-Stato della v0.2.1: 6 pacchetti, analisi statica stretta pulita, 143 test verdi (85 core, 12 archive, 19 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
+Stato della v0.3.0: 6 pacchetti, analisi statica stretta pulita, 158 test verdi (100 core, 12 archive, 19 io, 11 server, 6 realm, 10 flutter), più la verifica end-to-end della demo in CI.
 
 ## Struttura del repository
 
@@ -78,6 +78,7 @@ log-your-event/
 │   └── adr/                      001 Realm dietro LyeStore · 002 nessuna dipendenza da Serverpod · 003 CSV lye.v1
 │                                 004 hash-chain per stream · 005 Zone e call_digest · 006 repo separato e tag · 007 minimizzazione
 │                                 008 catena per soggetto e classe · 009 archivi ZIP per soggetto · 010 livelli di verbosità (progettate per 0.2)
+│                                 011 un solo CSV da leggere per conto, al massimo sei colonne (0.3)
 └── packages/
     ├── lye_core/                 Dart puro, nessun I/O (gira anche sul web)
     │   ├── lib/lye_core.dart     export pubblici
@@ -95,6 +96,7 @@ log-your-event/
     │       ├── recorder/         lye_recorder.dart (scrittore unico, span, withContext) · lye_span.dart (Zone) · lye_context.dart
     │       │                     lye_config.dart (identità, RetentionPolicy) · lye_clock.dart (System/Fixed)
     │       ├── rpc/              call_correlation.dart (call_digest, busta Serverpod)
+    │       ├── readable/         readable_journal.dart (un CSV per conto, ≤ 6 colonne, chiamata e risposta in una riga) · journal_areas.dart (zone)
     │       ├── shipping/         lye_batch.dart (lye.batch.v1) · shipping_scheduler.dart (soglia, intervallo, backoff, rifiuto)
     │       └── version.dart      lyeVersion
     │   └── test/                 70 test (canonical, ids_and_chain, privacy, csv_codec, csv_and_verify, memory_store, recorder, manifest, shipping)

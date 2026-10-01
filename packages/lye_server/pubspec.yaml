@@ -1,6 +1,6 @@
 name: lye_server
 description: Log Your Event (LYE) server side - ingest of client batches with chain verification, tracing helpers for scoped transactions, SQL statements, audit events and jobs, daily export, anchoring of stream heads and retention purge. Framework-agnostic (no Serverpod dependency).
-version: 0.2.1
+version: 0.3.0
 publish_to: none
 repository: https://github.com/CristiPerciun/log-your-event
 

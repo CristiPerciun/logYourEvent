@@ -25,6 +25,8 @@ export 'src/model/lye_draft.dart';
 export 'src/model/lye_event.dart';
 export 'src/privacy/redactor.dart';
 export 'src/privacy/text_sanitizer.dart';
+export 'src/readable/journal_areas.dart';
+export 'src/readable/readable_journal.dart';
 export 'src/recorder/lye_clock.dart';
 export 'src/recorder/lye_config.dart';
 export 'src/recorder/lye_context.dart';

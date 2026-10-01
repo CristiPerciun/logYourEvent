@@ -1,6 +1,6 @@
 name: lye_realm
 description: Log Your Event (LYE) durable store on Realm 20 (local, encrypted) for Dart VM servers, desktop and mobile. Not available on Flutter Web (use MemoryLyeStore).
-version: 0.2.1
+version: 0.3.0
 publish_to: none
 repository: https://github.com/CristiPerciun/log-your-event
 
