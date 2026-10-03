@@ -44,6 +44,13 @@ enum FlushOutcome { shipped, nothingToShip, deferred, failed, rejected, busy }
 /// records `lye.ship.rejected` once, and waits for [resetAfterRejection].
 /// Events are marked shipped only after the receiver accepted them, so a
 /// crash between the two leaves them pending, never lost.
+///
+/// Errors have a channel of their own (0.4.0): with [shipErrorsAtOnce] an
+/// error (`LyeEvent.isError`) is shipped as soon as it is recorded, together
+/// with what is pending before it, instead of waiting for the threshold or
+/// the interval. Whoever has to fix it sees it at once. A backoff after a
+/// transport failure still holds: hammering a receiver that is down helps
+/// nobody.
 class ShippingScheduler {
   ShippingScheduler({
     required this.recorder,
@@ -53,6 +60,7 @@ class ShippingScheduler {
     this.interval = const Duration(seconds: 5),
     this.minBackoff = const Duration(seconds: 2),
     this.maxBackoff = const Duration(minutes: 5),
+    this.shipErrorsAtOnce = true,
     LyeClock? clock,
     Random? random,
   }) : clock = clock ?? recorder.clock,
@@ -65,12 +73,18 @@ class ShippingScheduler {
   final Duration interval;
   final Duration minBackoff;
   final Duration maxBackoff;
+
+  /// Ships an error as soon as it is recorded (0.4.0).
+  final bool shipErrorsAtOnce;
   final LyeClock clock;
   final Random _random;
 
   Timer? _timer;
   StreamSubscription<LyeEvent>? _subscription;
   bool _flushing = false;
+
+  /// An error arrived while a flush was running: one more round after it.
+  bool _again = false;
   bool _rejected = false;
   int _sinceLastFlush = 0;
   Duration? _backoff;
@@ -92,9 +106,14 @@ class ShippingScheduler {
 
   /// Starts listening to the recorder and the periodic timer.
   void start() {
-    _subscription ??= recorder.events.listen((LyeEvent _) {
+    _subscription ??= recorder.events.listen((LyeEvent event) {
       _sinceLastFlush++;
-      if (_sinceLastFlush >= flushThreshold) {
+      if (shipErrorsAtOnce && event.isError) {
+        // A flush already running read the store before this error: it
+        // would wait for the next interval. Ask for another round.
+        if (_flushing) _again = true;
+        unawaited(flush());
+      } else if (_sinceLastFlush >= flushThreshold) {
         unawaited(flush());
       }
     });
@@ -184,6 +203,10 @@ class ShippingScheduler {
       }
     } finally {
       _flushing = false;
+      if (_again) {
+        _again = false;
+        unawaited(flush());
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 name: lye_core
 description: Log Your Event (LYE) core - verifiable, hash-chained event model, CSV codec, redaction, recorder and stores. Pure Dart, no Flutter, no Serverpod.
-version: 0.3.0
+version: 0.4.0
 publish_to: none
 repository: https://github.com/CristiPerciun/log-your-event
 

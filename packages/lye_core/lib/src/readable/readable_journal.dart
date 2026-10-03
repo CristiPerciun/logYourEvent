@@ -38,6 +38,13 @@ class LyeJournalStep {
 
   bool get failed => _isFailure(outcome);
 
+  /// Whether the step is an error (0.4.0): a failure on either side, or an
+  /// event of the `error` category on either side (`LyeEvent.isError`).
+  bool get isError =>
+      failed ||
+      event.category == LyeCategory.error ||
+      handling?.category == LyeCategory.error;
+
   /// The server's measure when there is one: the console's includes the
   /// network, and is usually not recorded.
   int? get durationMs => handling?.durationMs ?? event.durationMs;

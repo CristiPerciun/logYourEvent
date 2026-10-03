@@ -1,6 +1,6 @@
 # ADR-011 — Un solo CSV da leggere per conto, al massimo sei colonne; la prova resta negli archivi
 
-**Stato**: accettata · **Data**: 1 ottobre 2026 · **Versione**: 0.3.0
+**Stato**: accettata; il punto 1 è modificato da [ADR-012](012-jurnal-del-giorno.md) (0.4.0: un file per giorno, compresso, solo nei giorni con eventi) · **Data**: 1 ottobre 2026 · **Versione**: 0.3.0
 
 ## Contesto
 

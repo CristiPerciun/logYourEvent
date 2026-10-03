@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:lye_core/lye_core.dart';
@@ -15,6 +16,23 @@ class FakeShipper implements BatchShipper {
     if (throwOnShip) throw StateError('network down');
     received.add(batch);
     return next;
+  }
+}
+
+/// A shipper whose first call waits for [gate]: a flush that is still running.
+class _GatedShipper implements BatchShipper {
+  _GatedShipper(this.gate);
+
+  final Future<void> gate;
+  final List<LyeBatch> received = <LyeBatch>[];
+  int calls = 0;
+
+  @override
+  Future<ShipResult> ship(LyeBatch batch) async {
+    calls++;
+    if (calls == 1) await gate;
+    received.add(batch);
+    return const ShipResult.accepted();
   }
 }
 
@@ -51,6 +69,76 @@ void main() {
   });
 
   group('ShippingScheduler', () {
+    /// Lets the scheduler's own futures run, up to a bound.
+    Future<void> settle(bool Function() done) async {
+      for (var i = 0; i < 200 && !done(); i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+
+    test('an error is shipped at once, with what was pending before it', () async {
+      final recorder = testRecorder();
+      final shipper = FakeShipper();
+      final scheduler = ShippingScheduler(
+        recorder: recorder,
+        shipper: shipper,
+        interval: const Duration(hours: 1),
+        random: Random(1),
+      )..start();
+      await recordMany(recorder, 2);
+      await settle(() => shipper.received.isNotEmpty);
+      expect(shipper.received, isEmpty, reason: 'below the threshold, before the interval');
+
+      final error = await recorder.mustPoint(
+        LyeCategory.rpc,
+        LyeActions.rpcCall,
+        outcome: LyeOutcome.fail,
+      );
+      await settle(() => shipper.received.isNotEmpty);
+      expect(shipper.received.single.count, 3);
+      expect(shipper.received.single.eventIds.last, error.eventId);
+      await scheduler.stop();
+    });
+
+    test('without the error channel an error waits like any event', () async {
+      final recorder = testRecorder();
+      final shipper = FakeShipper();
+      final scheduler = ShippingScheduler(
+        recorder: recorder,
+        shipper: shipper,
+        interval: const Duration(hours: 1),
+        shipErrorsAtOnce: false,
+        random: Random(1),
+      )..start();
+      await recorder.mustPoint(LyeCategory.error, 'app.error', outcome: LyeOutcome.fail);
+      await settle(() => shipper.received.isNotEmpty);
+      expect(shipper.received, isEmpty);
+      await scheduler.stop();
+    });
+
+    test('an error recorded while a flush runs gets a round of its own', () async {
+      final recorder = testRecorder();
+      final gate = Completer<void>();
+      final shipper = _GatedShipper(gate.future);
+      final scheduler = ShippingScheduler(
+        recorder: recorder,
+        shipper: shipper,
+        interval: const Duration(hours: 1),
+        random: Random(1),
+      )..start();
+      await recordMany(recorder, 1);
+      final first = scheduler.flush();
+      await settle(() => shipper.calls > 0);
+
+      final error = await recorder.mustPoint(LyeCategory.rpc, LyeActions.rpcCall, outcome: LyeOutcome.denied);
+      gate.complete();
+      expect(await first, FlushOutcome.shipped);
+      await settle(() => shipper.received.length > 1);
+      expect(shipper.received, hasLength(2));
+      expect(shipper.received.last.eventIds.toList(), <String>[error.eventId]);
+      await scheduler.stop();
+    });
+
     test('ships pending events in batches and marks them shipped', () async {
       final recorder = testRecorder();
       final shipper = FakeShipper();

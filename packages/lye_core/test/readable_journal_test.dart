@@ -337,4 +337,22 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('an error: a failed or refused outcome, or the error category, on either side', () async {
+    final sides = _TwoSides();
+    final failed = await sides.call('license', 'setAutoRenew', page: '/settings/license', outcome: LyeOutcome.fail);
+    expect(failed.every((LyeEvent e) => e.isError), isTrue);
+    final refused = await sides.call('license', 'setAutoRenew', page: '/settings/license', outcome: LyeOutcome.denied);
+    expect(refused.every((LyeEvent e) => e.isError), isTrue);
+    final ok = await sides.call('license', 'setAutoRenew', page: '/settings/license');
+    expect(ok.any((LyeEvent e) => e.isError), isFalse);
+    final crash = await sides.console.mustRecord(
+      const LyeDraft(category: LyeCategory.error, action: 'app.error', route: '/home'),
+    );
+    expect(crash.isError, isTrue, reason: 'the error category, whatever the outcome');
+    expect((await sides.page('/home')).isError, isFalse);
+
+    final steps = journal().steps(<LyeEvent>[...failed, ...ok, crash]);
+    expect(<bool>[for (final s in steps) s.isError], <bool>[true, false, true]);
+  });
 }

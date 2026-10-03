@@ -65,6 +65,15 @@ class LyeEvent {
   /// signed with, otherwise an archive written before 0.2.0 stops verifying.
   bool get isLegacyV1 => schema == 'lye.v1';
 
+  /// Whether this event is an error: a failed or refused outcome, or an
+  /// event of the `error` category (0.4.0). Errors travel on a channel of
+  /// their own: `ShippingScheduler` ships them as soon as they are recorded,
+  /// and a consumer can show them without waiting for the day to close.
+  bool get isError =>
+      outcome == LyeOutcome.fail ||
+      outcome == LyeOutcome.denied ||
+      category == LyeCategory.error;
+
   /// UUIDv7 of the event.
   final String eventId;
 

@@ -1,6 +1,6 @@
 name: lye_io
 description: Log Your Event (LYE) file layer - CSV files with rotation and chained manifests, directory verification, operation timeline and the `lye` command line tool. Requires dart:io (server, desktop, mobile; not web).
-version: 0.3.0
+version: 0.4.0
 publish_to: none
 repository: https://github.com/CristiPerciun/log-your-event
 

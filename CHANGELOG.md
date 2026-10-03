@@ -2,6 +2,26 @@
 
 Tutte le modifiche rilevanti sono registrate qui. Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/), versionamento [SemVer](https://semver.org/lang/it/). Il tag Git `vX.Y.Z` coincide con il campo `version` di **tutti** i pacchetti (`tool/check_versions.dart`).
 
+## [0.4.0] — 2026-10-03
+
+Il **jurnal da leggere di un giorno** e un **canale per gli errori**, richiesti da Compliance OS. Il file del giorno si crea solo nei giorni in cui la persona ha lavorato, si conserva compresso in uno ZIP e arriva al database a fine giornata. Un errore invece parte nel momento in cui succede ([ADR-012](docs/adr/012-jurnal-del-giorno.md)).
+
+### Aggiunto
+- `ReadableJournalDay` (`lye_archive`, Dart puro):
+  - `pack` mette i passaggi di un giorno UTC, `[00:00, 24:00)`, in uno ZIP con un solo CSV, quello di `LyeReadableJournal.encode`. Lascia fuori gli eventi degli altri giorni, e per un giorno senza passaggi **restituisce null**: nessun file vuoto. Lo ZIP è riproducibile byte per byte, perché la data di modifica è l'inizio del giorno.
+  - `open` legge il CSV di un pacchetto.
+  - `dayOf` dice il giorno UTC di un istante, `dayStart` il primo istante di un giorno; un giorno che non esiste è rifiutato.
+- `PackedJournalDay`: i byte, il nome dello ZIP e del CSV, le righe, gli eventi letti, la dimensione prima e dopo la compressione, il digest. Dice anche le classi di retention da cui vengono gli eventi, perché il file non viva più della più breve.
+- `OpenedJournalDay`: il CSV letto da un pacchetto.
+- `LyeEvent.isError` (`lye_core`): un esito `fail` o `denied`, o un evento della categoria `error`. `LyeJournalStep.isError`: lo stesso per un passaggio, sui due lati della chiamata.
+- `ShippingScheduler.shipErrorsAtOnce`, attivo di serie: un errore si spedisce appena registrato, con ciò che era in attesa prima di lui, senza aspettare la soglia né l'intervallo. Un errore registrato durante una spedizione ottiene un giro suo. Il ritardo dopo un guasto di rete resta.
+
+### Modificato
+- ADR-011, punto 1: il file da leggere non si produce più quando qualcuno lo chiede, per un giorno qualunque, ma una volta per giorno con eventi, alla chiusura del giorno (ADR-012). Quando costruirlo resta del consumatore.
+
+### Invariato
+- `LyeReadableJournal`, le colonne e le righe. Gli archivi firmati: manifest `lye.archive.v1`, un CSV `lye.v2` per pacchetto.
+
 ## [0.3.0] — 2026-10-01
 
 Un **solo CSV da leggere per conto**, richiesto da Compliance OS: un file che permetta di ricostruire tutti i passaggi di una persona prima di un errore, con la zona del prodotto nella prima colonna, la data nella seconda, l'evento o l'errore nella terza e non più di sei colonne ([ADR-011](docs/adr/011-jurnal-da-leggere.md)).
